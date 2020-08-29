@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Developers Life</string>
+    <string name="category_latest">Последние</string>
+    <string name="category_top">Лучшие</string>
+    <string name="category_hot">Горячие</string>
+    <string name="error_message">Произошла ошибка при&#160;загрузке данных. Проверьте подключение к&#160;сети.</string>
+    <string name="repeat">Повторить</string>
 </resources>
