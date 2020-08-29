@@ -17,8 +17,8 @@ class MainModule {
 
     @Singleton
     @Provides
-    fun provideRepository(): DevlLifeRepository =
-        DefaultDevLifeRepository()
+    fun provideRepository(devLifeApi: DevLifeApi): DevlLifeRepository =
+        DefaultDevLifeRepository(devLifeApi)
 
     @Provides
     fun provideRetrofitService(retrofit: Retrofit): DevLifeApi =
