@@ -1,12 +1,23 @@
 package com.growd25.developerslife.presentation
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.growd25.developerslife.model.PostsCategory
 import com.growd25.developerslife.repository.DevlLifeRepository
-import javax.inject.Inject
 
+class DevLifeViewModel(
+    private val repository: DevlLifeRepository
+) : ViewModel() {
 
+    private val _state = MutableLiveData<DevLifeState>()
+    val state: LiveData<DevLifeState> = _state
 
-class DevLifeViewModel  (private val repository: DevlLifeRepository) :
-    ViewModel() {
-
+    init {
+        _state.value = DevLifeState(
+            category = PostsCategory.LATEST,
+            postState = PostState.Loading,
+            isPrevButtonEnabled = false
+        )
+    }
 }

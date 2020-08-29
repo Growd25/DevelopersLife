@@ -7,8 +7,9 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import javax.inject.Inject
 
-class DefaultDevLifeRepository @Inject constructor(private val devLifeApi: DevLifeApi) :
-    DevlLifeRepository {
+class DefaultDevLifeRepository @Inject constructor(
+    private val devLifeApi: DevLifeApi
+) : DevlLifeRepository {
 
     override fun getPosts(part: String, pageNumber: String): Single<List<Post>> =
         devLifeApi.getPosts(part, pageNumber)
