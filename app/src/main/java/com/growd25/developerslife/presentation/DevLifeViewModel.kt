@@ -4,146 +4,83 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.growd25.developerslife.model.PostsCategory
-import com.growd25.developerslife.repository.DevlLifeRepository
-import com.growd25.developerslife.ui.DevLifeViewState
-import io.reactivex.disposables.Disposable
-import io.reactivex.subjects.PublishSubject
-import io.reactivex.subjects.Subject
+import com.growd25.developerslife.model.Post
+import com.growd25.developerslife.repository.DevLifeRepository
+import kotlinx.coroutines.*
 
 class DevLifeViewModel(
-    private val repository: DevlLifeRepository
+    private val repository: DevLifeRepository
 ) : ViewModel() {
 
-    private val _viewState = MutableLiveData<DevLifeViewState>()
-    val viewState: LiveData<DevLifeViewState> = _viewState
-    private var state: DevLifeState = DevLifeState()
-    private val loadDataCommandSubject: Subject<LoadDataCommand> = PublishSubject.create()
-    private var loadDataDisposable: Disposable? = null
+    private val _postStateLiveData = MutableLiveData<PostState>()
+    val postStateLiveData: LiveData<PostState> = _postStateLiveData
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+
+    private val posts = mutableListOf<Post>()
+    var index = 0
 
     init {
-        Log.i("den","createViewModel")
-        loadDataDisposable = loadDataCommandSubject
-            .flatMap { cmd ->
-                repository.getPosts(cmd.category, cmd.pageNumber)
-                    .map<Message> { posts -> Message.OnPostLoaded(cmd.category, posts) }
-                    .onErrorReturn { e -> Message.OnPostLoadedError(cmd.category, e) }
-                    .toObservable()
-            }
-            .subscribe { msg ->
-                acceptMessage(msg)
-            }
-        loadDataCommandSubject.onNext(
-            LoadDataCommand(
-                state.currentCategory,
-                state.getCurrentCategoryState().pageNumber
-            )
-        )
+        coroutineScope.launch { loadRandomPost() }
     }
 
-    fun acceptMessage(msg: Message) {
-        val result = reduce(state, msg)
-        _viewState.value = stateToViewState(result.state)
-        result.loadDataCommand?.let { loadDataCommandSubject.onNext(it) }
-        state = result.state
-    }
-
-    private fun reduce(devLifeState: DevLifeState, msg: Message): ReduceResult =
-        when (msg) {
-            is Message.OnNextClicked -> {
-                val currentCategoryState = devLifeState.getCurrentCategoryState()
-                if (currentCategoryState.index < currentCategoryState.posts.size - 1 && currentCategoryState.dataState == PostCategoryState.DataState.LOADED) {
-                    val newCategoryState =
-                        currentCategoryState.copy(index = currentCategoryState.index + 1)
-                    val newState = devLifeState.copyCurrentCategoryState(newCategoryState)
-                    ReduceResult(newState)
-                } else {
-                    val newCategoryState =
-                        currentCategoryState.copy(dataState = PostCategoryState.DataState.LOADING)
-                    val newState = devLifeState.copyCurrentCategoryState(newCategoryState)
-
-                    ReduceResult(
-                        newState,
-                        LoadDataCommand(devLifeState.currentCategory, newCategoryState.pageNumber)
-                    )
-                }
-            }
-            is Message.OnPrevClicked -> {
-                val currentCategoryState = devLifeState.getCurrentCategoryState()
-                val newCategoryState =
-                    if (currentCategoryState.index != 0 && currentCategoryState.dataState == PostCategoryState.DataState.LOADED) {
-                        currentCategoryState.copy(index = currentCategoryState.index - 1)
-                    } else {
-                        currentCategoryState
-                    }
-
-                val newState = devLifeState.copyCurrentCategoryState(newCategoryState)
-                ReduceResult(newState)
-            }
-            is Message.OnCategoryChanged -> {
-                val categoryState = devLifeState.getCategoryState(msg.postsCategory)
-               val loadDataCommand = if (categoryState.posts.isEmpty()) {
-                    LoadDataCommand(msg.postsCategory, categoryState.pageNumber)
-                } else {
-                    null
-                }
-                ReduceResult(devLifeState.copy(currentCategory = msg.postsCategory),loadDataCommand)
-            }
-            is Message.OnPostLoaded -> {
-                val categoryState = devLifeState.getCategoryState(msg.category)
-
-                val newCategoryState = categoryState.copy(
-                    posts = categoryState.posts + msg.posts,
-                    index = categoryState.index + 1,
-                    pageNumber = categoryState.pageNumber + 1,
-                    dataState = PostCategoryState.DataState.LOADED
-                )
-
-                ReduceResult(devLifeState.copyCategoryState(msg.category, newCategoryState))
-
-            }
-            is Message.OnPostLoadedError -> {
-                Log.e("DevLifeViewModel", "OnPostLoadedError category ${msg.category}", msg.error)
-                val categoryState = devLifeState.getCategoryState(msg.category)
-                val newCategoryState =
-                    categoryState.copy(dataState = PostCategoryState.DataState.ERROR)
-                val newState = devLifeState.copyCategoryState(msg.category, newCategoryState)
-                ReduceResult(newState)
-
-            }
-            is Message.OnRetryClicked -> {
-                val categoryState = devLifeState.getCurrentCategoryState()
-                val newCategoryState =
-                    categoryState.copy(dataState = PostCategoryState.DataState.LOADING)
-                val newState = devLifeState.copyCurrentCategoryState(newCategoryState)
-                ReduceResult(
-                    newState,
-                    LoadDataCommand(devLifeState.currentCategory, newCategoryState.pageNumber)
+    fun onNextClicked() {
+        coroutineScope.launch {
+            if (posts.lastIndex == index) {
+                loadRandomPost()
+            } else {
+                _postStateLiveData.value = PostState(
+                    post = posts[++index],
+                    dataState = DataState.LOADED,
+                    isPrevEnabled = isPrevEnabled
                 )
             }
         }
+    }
 
-    private fun stateToViewState(state: DevLifeState): DevLifeViewState {
-        val categoryState = state.getCurrentCategoryState()
-        return DevLifeViewState(
-            category = state.currentCategory,
-            isProgressVisible = categoryState.dataState == PostCategoryState.DataState.LOADING,
-            isErrorVisible = categoryState.dataState == PostCategoryState.DataState.ERROR,
-            post = categoryState.posts.getOrNull(categoryState.index),
-            isPrevButtonEnabled = categoryState.index != 0,
-            isPostVisible = categoryState.dataState == PostCategoryState.DataState.LOADED
+    fun onPrevClicked() {
+        if (!isPrevEnabled) return
+        _postStateLiveData.value = PostState(
+            post = posts[--index],
+            dataState = DataState.LOADED,
+            isPrevEnabled = isPrevEnabled
         )
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        loadDataDisposable?.dispose()
+    fun onRetryClicked() {
+        coroutineScope.launch { loadRandomPost() }
     }
 
-    private class ReduceResult(
-        val state: DevLifeState,
-        val loadDataCommand: LoadDataCommand? = null
-    )
+    private suspend fun loadRandomPost() {
+        if (_postStateLiveData.value?.dataState == DataState.LOADING) return
+        _postStateLiveData.value = PostState(
+            post = null,
+            dataState = DataState.LOADING,
+            isPrevEnabled = isPrevEnabled
+        )
+        _postStateLiveData.value = try {
+            val post = withContext(Dispatchers.IO) { repository.getRandomPost() }
+            posts.add(post)
+            index = posts.lastIndex
+            PostState(
+                post = post,
+                dataState = DataState.LOADED,
+                isPrevEnabled = isPrevEnabled
+            )
+        } catch (th: Throwable) {
+            Log.e("DevLifeViewModel", "load random post error", th)
+            PostState(post = null, dataState = DataState.ERROR, isPrevEnabled)
+        }
+    }
 
-    private class LoadDataCommand(val category: PostsCategory, val pageNumber: Int)
+    private val isPrevEnabled
+        get() = index > 0
+
+    override fun onCleared() {
+        super.onCleared()
+        coroutineScope.cancel()
+    }
 }
+
+data class PostState(val post: Post?, val dataState: DataState, val isPrevEnabled: Boolean)
+enum class DataState { LOADING, LOADED, ERROR }

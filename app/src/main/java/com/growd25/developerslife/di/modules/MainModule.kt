@@ -4,7 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.growd25.developerslife.data.DevLifeApi
 import com.growd25.developerslife.repository.DefaultDevLifeRepository
-import com.growd25.developerslife.repository.DevlLifeRepository
+import com.growd25.developerslife.repository.DevLifeRepository
 import dagger.Module
 import dagger.Provides
 import retrofit2.Retrofit
@@ -17,7 +17,7 @@ class MainModule {
 
     @Singleton
     @Provides
-    fun provideRepository(devLifeApi: DevLifeApi): DevlLifeRepository =
+    fun provideRepository(devLifeApi: DevLifeApi): DevLifeRepository =
         DefaultDevLifeRepository(devLifeApi)
 
     @Provides

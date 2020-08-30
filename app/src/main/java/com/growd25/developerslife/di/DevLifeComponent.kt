@@ -7,8 +7,6 @@ import dagger.Component
 import dagger.android.AndroidInjector
 import javax.inject.Singleton
 
-
-
 @Singleton
 @Component(modules = [ApplicationModule::class,MainModule::class])
 interface DevLifeComponent : AndroidInjector<App> {

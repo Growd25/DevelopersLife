@@ -2,10 +2,10 @@ package com.growd25.developerslife.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.growd25.developerslife.repository.DevlLifeRepository
+import com.growd25.developerslife.repository.DevLifeRepository
 import javax.inject.Inject
 
-class DevLifeVmFactory @Inject constructor  (private val repository: DevlLifeRepository): ViewModelProvider.Factory {
+class DevLifeVmFactory @Inject constructor  (private val repository: DevLifeRepository): ViewModelProvider.Factory {
     override fun <T : ViewModel?> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DevLifeViewModel::class.java)) {
             return DevLifeViewModel(repository) as T
