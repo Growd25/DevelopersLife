@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.growd25.developerslife.model.Post
+import com.growd25.developerslife.model.PostsCategory
 import com.growd25.developerslife.repository.DevLifeRepository
 import kotlinx.coroutines.*
 
@@ -12,69 +13,73 @@ class DevLifeViewModel(
     private val repository: DevLifeRepository
 ) : ViewModel() {
 
-    private val _postStateLiveData = MutableLiveData<PostState>()
-    val postStateLiveData: LiveData<PostState> = _postStateLiveData
+    private val _viewStateLiveData = MutableLiveData<ViewState>()
+    val viewStateLiveData: LiveData<ViewState> = _viewStateLiveData
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    private val posts = mutableListOf<Post>()
-    var index = 0
+    private val state = State()
+
 
     init {
-        coroutineScope.launch { loadRandomPost() }
+        coroutineScope.launch { loadPosts(PostsCategory.LATEST, nextPage = 0) }
     }
 
     fun onNextClicked() {
-        coroutineScope.launch {
-            if (posts.lastIndex == index) {
-                loadRandomPost()
-            } else {
-                _postStateLiveData.value = PostState(
-                    post = posts[++index],
-                    dataState = DataState.LOADED,
-                    isPrevEnabled = isPrevEnabled
-                )
+        val postState = state.getPostState(state.currentCategory)
+        postState.index++
+        _viewStateLiveData.value = ViewState.fromState(state)
+        if (postState.index == postState.posts.size) {
+            coroutineScope.launch {
+                loadPosts(state.currentCategory, nextPage = postState.page + 1)
             }
         }
     }
 
     fun onPrevClicked() {
-        if (!isPrevEnabled) return
-        _postStateLiveData.value = PostState(
-            post = posts[--index],
-            dataState = DataState.LOADED,
-            isPrevEnabled = isPrevEnabled
-        )
+        val postState = state.getPostState(state.currentCategory)
+        if (postState.index == 0) return
+        postState.index--
+        _viewStateLiveData.value = ViewState.fromState(state)
     }
 
     fun onRetryClicked() {
-        coroutineScope.launch { loadRandomPost() }
-    }
-
-    private suspend fun loadRandomPost() {
-        if (_postStateLiveData.value?.dataState == DataState.LOADING) return
-        _postStateLiveData.value = PostState(
-            post = null,
-            dataState = DataState.LOADING,
-            isPrevEnabled = isPrevEnabled
-        )
-        _postStateLiveData.value = try {
-            val post = withContext(Dispatchers.IO) { repository.getRandomPost() }
-            posts.add(post)
-            index = posts.lastIndex
-            PostState(
-                post = post,
-                dataState = DataState.LOADED,
-                isPrevEnabled = isPrevEnabled
-            )
-        } catch (th: Throwable) {
-            Log.e("DevLifeViewModel", "load random post error", th)
-            PostState(post = null, dataState = DataState.ERROR, isPrevEnabled)
+        coroutineScope.launch {
+            loadPosts(state.currentCategory, nextPage = state.getPostState(state.currentCategory).page + 1)
         }
     }
 
-    private val isPrevEnabled
-        get() = index > 0
+    fun onCategoryChanged(category: PostsCategory) {
+        state.currentCategory = category
+        val postState = state.getPostState(category)
+        _viewStateLiveData.value = ViewState.fromState(state)
+        if (postState.index == postState.posts.size) {
+            coroutineScope.launch { loadPosts(category, nextPage = postState.page + 1) }
+        }
+    }
+
+    private suspend fun loadPosts(category: PostsCategory, nextPage: Int) {
+        if (state.getPostState(category).dataState != DataState.LOADING) {
+            try {
+                state.getPostState(category).dataState = DataState.LOADING
+                _viewStateLiveData.value = ViewState.fromState(state)
+                val posts: List<Post> = withContext(Dispatchers.IO) {
+                    repository.getPosts(category, nextPage)
+                }
+                val postState = state.getPostState(category)
+                postState.dataState = DataState.LOADED
+                postState.page = nextPage
+                postState.posts.addAll(posts)
+                _viewStateLiveData.value = ViewState.fromState(state)
+
+            } catch (th: Throwable) {
+                Log.e("DevLifeViewModel", "load random post error", th)
+
+                state.getPostState(category).dataState = DataState.ERROR
+                _viewStateLiveData.value = ViewState.fromState(state)
+            }
+        }
+    }
 
     override fun onCleared() {
         super.onCleared()
@@ -82,5 +87,45 @@ class DevLifeViewModel(
     }
 }
 
-data class PostState(val post: Post?, val dataState: DataState, val isPrevEnabled: Boolean)
+data class State(
+    var currentCategory: PostsCategory = PostsCategory.LATEST,
+    val latestState: PostState = PostState(),
+    val hotState: PostState = PostState(),
+    val topState: PostState = PostState()
+) {
+
+    fun getPostState(category: PostsCategory) = when (category) {
+        PostsCategory.LATEST -> latestState
+        PostsCategory.HOT -> hotState
+        PostsCategory.TOP -> topState
+    }
+
+    data class PostState(
+        val posts: MutableList<Post> = mutableListOf(),
+        var index: Int = 0,
+        var page: Int = 0,
+        var dataState: DataState = DataState.LOADED
+    )
+}
+
+data class ViewState(
+    val category: PostsCategory,
+    val post: Post?,
+    val dataState: DataState,
+    val isPrevEnabled: Boolean
+) {
+
+    companion object {
+        fun fromState(state: State): ViewState {
+            val postState = state.getPostState(state.currentCategory)
+            return ViewState(
+                category = state.currentCategory,
+                post = postState.posts.getOrNull(postState.index),
+                dataState = postState.dataState,
+                isPrevEnabled = postState.index > 0
+            )
+        }
+    }
+}
+
 enum class DataState { LOADING, LOADED, ERROR }

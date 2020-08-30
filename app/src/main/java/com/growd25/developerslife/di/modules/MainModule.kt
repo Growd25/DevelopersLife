@@ -8,7 +8,6 @@ import com.growd25.developerslife.repository.DevLifeRepository
 import dagger.Module
 import dagger.Provides
 import retrofit2.Retrofit
-import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
@@ -30,7 +29,6 @@ class MainModule {
     @Provides
     fun provideRetrofit(): Retrofit = Retrofit.Builder()
         .addConverterFactory(GsonConverterFactory.create())
-        .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
         .baseUrl(DevLifeApi.BASE_URL)
         .build()
 }
