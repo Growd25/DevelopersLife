@@ -32,7 +32,7 @@ class DevLifeFragment : Fragment(R.layout.fragment_devlife) {
         super.onViewCreated(view, savedInstanceState)
         devLifeViewModel = ViewModelProvider(this, devLifeVMFactory)
             .get(DevLifeViewModel::class.java)
-        devLifeViewModel.viewStateLiveData.observe(viewLifecycleOwner, Observer(::observePostState))
+        devLifeViewModel.viewStateLiveData.observe(viewLifecycleOwner, Observer(::observeViewState))
         tab_layout.addOnTabSelectedListener(SimpleOnTabSelectedListener { tab ->
             devLifeViewModel.onCategoryChanged(tab.category)
         })
@@ -41,7 +41,7 @@ class DevLifeFragment : Fragment(R.layout.fragment_devlife) {
         error_button.setOnClickListener { devLifeViewModel.onRetryClicked() }
     }
 
-    private fun observePostState(viewState: ViewState) {
+    private fun observeViewState(viewState: ViewState) {
         tab_layout.getTabAt(viewState.category.tabPosition)?.select()
         post_group.visibility(viewState.dataState == DataState.LOADED)
         error_group.visibility(viewState.dataState == DataState.ERROR)

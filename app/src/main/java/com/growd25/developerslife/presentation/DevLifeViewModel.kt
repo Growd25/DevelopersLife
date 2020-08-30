@@ -74,7 +74,6 @@ class DevLifeViewModel(
 
             } catch (th: Throwable) {
                 Log.e("DevLifeViewModel", "load random post error", th)
-
                 state.getPostState(category).dataState = DataState.ERROR
                 _viewStateLiveData.value = ViewState.fromState(state)
             }
