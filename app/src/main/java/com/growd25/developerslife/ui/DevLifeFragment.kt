@@ -58,13 +58,13 @@ class DevLifeFragment : Fragment(R.layout.fragment_devlife) {
         }
         tab_layout.getTabAt(tabIndex)?.select()
         progress_bar.visibility(state.isProgressVisible)
-        post_card.visibility(state.isPostVisible)
+        post_group.visibility(state.isPostVisible)
         error_group.visibility(state.isErrorVisible)
         Glide.with(this).asGif().load(state.post?.gifURL).into(post_image)
         description_text.text = state.post?.description
         prev_button.isEnabled = state.isPrevButtonEnabled
-        prev_button.visibility(state.isPostVisible)
-        next_button.visibility(state.isPostVisible)
+        post_group.visibility(state.isPostVisible)
+        post_group.visibility(state.isPostVisible)
 
     }
 
