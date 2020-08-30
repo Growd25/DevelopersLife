@@ -50,7 +50,6 @@ class DevLifeFragment : Fragment(R.layout.fragment_devlife) {
     }
 
     private fun consumeState(state: DevLifeViewState) {
-        Log.i("den", "consumeState:$state")
         val tabIndex = when (state.category) {
             PostsCategory.LATEST -> 0
             PostsCategory.TOP -> 1

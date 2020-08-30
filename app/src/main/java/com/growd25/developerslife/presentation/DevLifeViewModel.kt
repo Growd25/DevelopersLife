@@ -22,7 +22,6 @@ class DevLifeViewModel(
     private var loadDataDisposable: Disposable? = null
 
     init {
-        Log.i("den","createViewModel")
         loadDataDisposable = loadDataCommandSubject
             .flatMap { cmd ->
                 repository.getPosts(cmd.category, cmd.pageNumber)
