@@ -15,11 +15,8 @@ class DevLifeViewModel(
 
     private val _viewStateLiveData = MutableLiveData<ViewState>()
     val viewStateLiveData: LiveData<ViewState> = _viewStateLiveData
-
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-
     private val state = State()
-
 
     init {
         coroutineScope.launch { loadPosts(PostsCategory.LATEST, nextPage = 0) }
@@ -45,7 +42,10 @@ class DevLifeViewModel(
 
     fun onRetryClicked() {
         coroutineScope.launch {
-            loadPosts(state.currentCategory, nextPage = state.getPostState(state.currentCategory).page + 1)
+            loadPosts(
+                state.currentCategory,
+                nextPage = state.getPostState(state.currentCategory).page + 1
+            )
         }
     }
 
@@ -86,46 +86,3 @@ class DevLifeViewModel(
         coroutineScope.cancel()
     }
 }
-
-data class State(
-    var currentCategory: PostsCategory = PostsCategory.LATEST,
-    val latestState: PostState = PostState(),
-    val hotState: PostState = PostState(),
-    val topState: PostState = PostState()
-) {
-
-    fun getPostState(category: PostsCategory) = when (category) {
-        PostsCategory.LATEST -> latestState
-        PostsCategory.HOT -> hotState
-        PostsCategory.TOP -> topState
-    }
-
-    data class PostState(
-        val posts: MutableList<Post> = mutableListOf(),
-        var index: Int = 0,
-        var page: Int = 0,
-        var dataState: DataState = DataState.LOADED
-    )
-}
-
-data class ViewState(
-    val category: PostsCategory,
-    val post: Post?,
-    val dataState: DataState,
-    val isPrevEnabled: Boolean
-) {
-
-    companion object {
-        fun fromState(state: State): ViewState {
-            val postState = state.getPostState(state.currentCategory)
-            return ViewState(
-                category = state.currentCategory,
-                post = postState.posts.getOrNull(postState.index),
-                dataState = postState.dataState,
-                isPrevEnabled = postState.index > 0
-            )
-        }
-    }
-}
-
-enum class DataState { LOADING, LOADED, ERROR }
