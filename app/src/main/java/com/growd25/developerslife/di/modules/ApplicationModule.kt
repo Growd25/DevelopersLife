@@ -1,6 +1,6 @@
 package com.growd25.developerslife.di.modules
 
-import com.growd25.developerslife.ui.fragments.DevLifeFragment
+import com.growd25.developerslife.ui.DevLifeFragment
 import dagger.Module
 import dagger.android.AndroidInjectionModule
 import dagger.android.ContributesAndroidInjector

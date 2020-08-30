@@ -10,7 +10,7 @@ interface DevLifeApi {
     @GET("{part}/{pageNumber}?json=true")
     fun getPosts(
         @Path("part") part: String,
-        @Path("pageNumber") pageNumber: String
+        @Path("pageNumber") pageNumber: Int
     ): Single<PostsResponse>
 
     companion object {

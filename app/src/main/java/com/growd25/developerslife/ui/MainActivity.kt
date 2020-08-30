@@ -1,9 +1,8 @@
-package com.growd25.developerslife.ui.activities
+package com.growd25.developerslife.ui
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.growd25.developerslife.R
-import com.growd25.developerslife.ui.fragments.DevLifeFragment
 import com.growd25.developerslife.utils.addFragment
 
 class MainActivity : AppCompatActivity() {
